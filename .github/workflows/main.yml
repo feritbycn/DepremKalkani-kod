@@ -1,0 +1,26 @@
+name: APK derle
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zip dosyasini ac
+        run: unzip -q DepremKalkani.zip
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+      - name: APK derle
+        working-directory: DepremKalkani
+        run: gradle assembleDebug --no-daemon --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DepremKalkani-APK
+          path: DepremKalkani/app/build/outputs/apk/debug/*.apk
