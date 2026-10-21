@@ -1,4 +1,4 @@
-name: APK derle
+name: APK ozet
 on:
   push:
   workflow_dispatch:
@@ -8,19 +8,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Zip dosyasini ac
-        run: unzip -q DepremKalkani.zip
-      - uses: actions/setup-java@v4
+        run: unzip -q -o DepremKalkani.zip
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
-      - uses: android-actions/setup-android@v3
+      - name: Android lisanslarini kabul et
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
-      - name: APK derle
+      - name: Surum kodunu goster
         working-directory: DepremKalkani
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: grep -n "versionCode\|versionName" app/build.gradle.kts
+      - name: APK ve AAB derle
+        working-directory: DepremKalkani
+        run: |
+          set +e
+          gradle assembleDebug bundleRelease --no-daemon --console=plain > ../build.log 2>&1
+          status=$?
+          echo "=========== HATA OZETI ==========="
+          grep -nE "^e: |What went wrong" -A3 ../build.log | head -70
+          echo "=========== BITTI (cikis kodu: $status) ==========="
+          exit $status
       - uses: actions/upload-artifact@v4
         with:
           name: DepremKalkani-APK
           path: DepremKalkani/app/build/outputs/apk/debug/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DepremKalkani-AAB
+          path: DepremKalkani/app/build/outputs/bundle/release/*.aab
